@@ -29,7 +29,6 @@ def rolling_window(x, k, sparse=True):
     return out[:, :-(k-1)]
 
 def acf(x, k, le=False):
-
     
     arr = rolling_window(x, k, sparse=False)
     a = (arr[0] - np.nanmean(arr[0], axis=0))
