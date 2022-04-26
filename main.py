@@ -7,7 +7,6 @@
 # ## Timeseries: Fetching and Characteristics
 # In the first chapter, we use the yfinance module to obtain financial series. In this notebook we focus on equity series. We illustrate the characteristics of the financial series that we seek to replicate in synthetic data.
 # %% Times Series
-#=====================
 # We use yfinance to download our targeted financial variables, the daily close price for the S&P 500.
 import numpy as np
 import matplotlib.pyplot as plt
@@ -87,8 +86,8 @@ plt.tight_layout()
 #%% [markdown]
 # Prior to passing a realization of a financial time series $s_{0:T} ∈ \mathbb{R}^{N_X×(T+1)}$ to the discriminator, the time series has to be preprocessed. The applied pipeline is described in the report. We briefly explain each of the steps taken. Note that all of the used transformations, excluding the rolling window, are invertible and thus, allow a series sampled from a log return NP to be post-processed by inverting the steps 1-4 to obtain the desired form. Also, observe that the pipeline includes the inverse Lambert W transformation as earlier discussed in subsection 5.3.
 
-# %% Preprocessing
-#=====================
+# %% [markdown]
+# Preprocessing
 # The data need to be preprocessed before being brought to the model. We describe each step separately.
 
 # %% [markdown]
