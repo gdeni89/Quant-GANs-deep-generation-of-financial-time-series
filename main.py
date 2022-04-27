@@ -27,6 +27,7 @@ df     = df.rename(columns={'Adj Close':names[0]})
 ax = df.plot(title=names[0], figsize=(10,5))
 ax.grid(True)
 plt.show()
+plt.savefig('SP500.png', dpi=300)
 
 #%% [markdown]
 # The next plots show the returns for the S&P500 and its autocorrelation at various lag.
@@ -49,6 +50,7 @@ plt.setp(axs[1], ylabel='Autocorrelation')
 axs[1].set_ylabel('correlation')
 plt.tight_layout()
 plt.show()
+plt.savefig('returns_val_corr.png', dpi=300)
 
 # %% [markdown]
 # We also present log returns that have various advantages over simple returns (they are approximately normal, they are equal to cumulative return of the asset/portfolio and they are symmetric)
@@ -71,6 +73,7 @@ plt.setp(axs[1], ylabel='autocorrelation')
 axs[1].set_ylabel('correlation')
 plt.tight_layout()
 plt.show()
+plt.savefig('log_returns_val_corr.png', dpi=300)
 
 # %% [markdown]
 # Leverage Effect
@@ -82,7 +85,7 @@ plt.setp(ax, xlabel='Lag (days)')
 plt.setp(ax, ylabel='autocorrelation')
 ax.set_ylabel('correlation')
 plt.tight_layout()
-
+plt.savefig('leverage_effect.png',dpi=300)
 #%% [markdown]
 # Prior to passing a realization of a financial time series $s_{0:T} ∈ \mathbb{R}^{N_X×(T+1)}$ to the discriminator, the time series has to be preprocessed. The applied pipeline is described in the report. We briefly explain each of the steps taken. Note that all of the used transformations, excluding the rolling window, are invertible and thus, allow a series sampled from a log return NP to be post-processed by inverting the steps 1-4 to obtain the desired form. Also, observe that the pipeline includes the inverse Lambert W transformation as earlier discussed in subsection 5.3.
 
@@ -136,7 +139,7 @@ ax[1].set_xlabel('Gaussianized standardized log returns')
 
 ax[0].set_xlim(-4, 4)
 plt.show()
-
+plt.savefig('empirical_distributions.png')
 # %%
 
 # %% [markdown]
@@ -147,15 +150,10 @@ plt.show()
 # ### Preprocessing
 # Here we set the different parameters and options required for the implementation of Quant GAN. The choice for the model parameters are descibed in the report.
 # %%
-import sys
-# sys.path.append('/home/davidg/Documents/Cours/MLforFinance/temporalCN/preprocess')
 import numpy as np
 from sklearn.preprocessing import StandardScaler
-# from acf import *
-# from gaussianize import *
 import torch
-import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from model.torch_tcn import *
 
 # Set gpu if available
@@ -210,7 +208,7 @@ generator_path = '/home/davidg/Documents/Cours/MLforFinance/temporalCN/trained/'
 file_name = 'SP500_daily'
 
 receptive_field_size = 127  
-log_returns_preprocessed = rolling_window(log_returns_preprocessed, 127)
+log_returns_preprocessed = rolling_window(log_returns_preprocessed, receptive_field_size)
 data_size = log_returns.shape[0]
 print(log_returns_preprocessed.shape)
 print(data_size)
@@ -268,9 +266,9 @@ else:
 # %% [markdown]
 # Here we create some synthetic series using the estimated GAN. To do so we create a log return series, and use the reverse the transformation used to process the original data.
 # %%
-pp = 80
+pp    = 80
 generator.eval()
-noise = torch.randn(pp,3,127).to(device)
+noise = torch.randn(pp,3,receptive_field_size).to(device)
 y     = generator(noise).cpu().detach().squeeze();
 
 y = (y - y.mean(axis=0))/y.std(axis=0)
@@ -288,7 +286,7 @@ ax.plot(np.cumsum(y[0:30], axis=1).T, alpha=0.75)
 ax.set_title('30 generated log return paths'.format(len(y)))
 ax.set_xlabel('days')
 ax.set_ylabel('Cumalative log return');
-
+plt.savefig('cum_log_returns.png',dpi=300)
 n_bins  = 50
 windows = [1, 5, 20, 100]
 
@@ -334,6 +332,7 @@ for ax in axs.flat:
 plt.setp(axs, xlabel='Lag (number of days')
 
 plt.show()
+plt.savefig('synthetic_returns.png',dpi=300)
 
 
 # %% [markdown]
