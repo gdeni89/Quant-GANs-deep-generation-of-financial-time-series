@@ -8,12 +8,16 @@
 # In the first chapter, we use the yfinance module to obtain financial series. In this notebook we focus on equity series. We illustrate the characteristics of the financial series that we seek to replicate in synthetic data.
 # %% Times Series
 # We use yfinance to download our targeted financial variables, the daily close price for the S&P 500.
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import yfinance as yf
 import matplotlib as mpl
 mpl.rcParams.update(mpl.rcParamsDefault)
+
+os.makedirs('./figure/',exist_ok=True)
+os.makedirs('./table/',exist_ok=True)
 
 tickers_list = ['^GSPC',]
 names  = ['SP500',]
@@ -27,7 +31,7 @@ df     = df.rename(columns={'Adj Close':names[0]})
 ax = df.plot(title=names[0], figsize=(10,5))
 ax.grid(True)
 plt.show()
-plt.savefig('SP500.png', dpi=300)
+plt.savefig('./figure/SP500.png', dpi=300)
 
 #%% [markdown]
 # The next plots show the returns for the S&P500 and its autocorrelation at various lag.
@@ -49,8 +53,8 @@ plt.setp(axs[0], ylabel='Relative Returns')
 plt.setp(axs[1], ylabel='Autocorrelation')
 axs[1].set_ylabel('correlation')
 plt.tight_layout()
+plt.savefig('./figure/returns_val_corr.png', dpi=300)
 plt.show()
-plt.savefig('returns_val_corr.png', dpi=300)
 
 # %% [markdown]
 # We also present log returns that have various advantages over simple returns (they are approximately normal, they are equal to cumulative return of the asset/portfolio and they are symmetric)
@@ -72,8 +76,8 @@ plt.setp(axs[0], ylabel='relative return')
 plt.setp(axs[1], ylabel='autocorrelation')
 axs[1].set_ylabel('correlation')
 plt.tight_layout()
+plt.savefig('./figure/log_returns_val_corr.png', dpi=300)
 plt.show()
-plt.savefig('log_returns_val_corr.png', dpi=300)
 
 # %% [markdown]
 # Leverage Effect
@@ -85,7 +89,8 @@ plt.setp(ax, xlabel='Lag (days)')
 plt.setp(ax, ylabel='autocorrelation')
 ax.set_ylabel('correlation')
 plt.tight_layout()
-plt.savefig('leverage_effect.png',dpi=300)
+plt.savefig('./figure/leverage_effect.png',dpi=300)
+plt.show()
 #%% [markdown]
 # Prior to passing a realization of a financial time series $s_{0:T} ∈ \mathbb{R}^{N_X×(T+1)}$ to the discriminator, the time series has to be preprocessed. The applied pipeline is described in the report. We briefly explain each of the steps taken. Note that all of the used transformations, excluding the rolling window, are invertible and thus, allow a series sampled from a log return NP to be post-processed by inverting the steps 1-4 to obtain the desired form. Also, observe that the pipeline includes the inverse Lambert W transformation as earlier discussed in subsection 5.3.
 
@@ -138,8 +143,8 @@ ax[0].set_xlabel('Standardized log returns')
 ax[1].set_xlabel('Gaussianized standardized log returns')
 
 ax[0].set_xlim(-4, 4)
+plt.savefig('./figure/empirical_distributions.png',dpi=300)
 plt.show()
-plt.savefig('empirical_distributions.png')
 # %%
 
 # %% [markdown]
@@ -286,7 +291,8 @@ ax.plot(np.cumsum(y[0:30], axis=1).T, alpha=0.75)
 ax.set_title('30 generated log return paths'.format(len(y)))
 ax.set_xlabel('days')
 ax.set_ylabel('Cumalative log return');
-plt.savefig('cum_log_returns.png',dpi=300)
+plt.savefig('./figure/log_returns_series.png',dpi=300)
+plt.show()
 n_bins  = 50
 windows = [1, 5, 20, 100]
 
@@ -305,9 +311,10 @@ for i in range(len(windows)):
     axs[row,col].set_ylabel('Frequency')
 
 axs[0,0].legend(['Historical returns', 'Synthetic returns'])
+plt.savefig('./figure/synthetic_distributions.png',dpi=300)
+plt.show()
 
 fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(20, 10))
-
 axs[0,0].plot(acf(log_returns, 100))
 axs[0,0].plot(acf(y.T, 100).mean(axis=1))
 axs[0,0].set_ylim(-0.1, 0.1)
@@ -331,8 +338,8 @@ for ax in axs.flat:
   ax.axvline(x=0, color='k')
 plt.setp(axs, xlabel='Lag (number of days')
 
+plt.savefig('./figure/synthetic_leverage.png',dpi=300)
 plt.show()
-plt.savefig('synthetic_returns.png',dpi=300)
 
 
 # %% [markdown]
@@ -350,7 +357,7 @@ for i in range(len(windows)):
     EMDscores[i] = wasserstein_distance(real_dist, fake_dist)
 
 df_EMD = pd.DataFrame({'Earth Mover Distance' : EMDscores}, index=windows)
-with open("EMD_Scores.tex", "w") as fh:
+with open("./table/EMD_Scores.tex", "w") as fh:
     fh.write(df_EMD.to_latex())
 df_EMD
 
@@ -373,10 +380,10 @@ for i in range(len(windows)):
 
 ax[0].legend(['$\phi_{\hat{\mu}, \hat{\sigma}}(\cdot)$', 'historical returns'], loc='upper left')
 plt.show()
-plt.savefig('real_agg_gauss.png', dpi=300)
+plt.savefig('./figure/real_agg_gauss.png', dpi=300)
 
 # %%
-windows = [1, 5, 20, 100, 1000]
+windows = [1, 5, 20, 100, 100]
 n_bins = 100
 
 fig, ax = plt.subplots(ncols=len(windows), figsize=(5*len(windows),5))
@@ -392,7 +399,8 @@ for i in range(len(windows)):
     ax[i].set_ylabel('frequency')
 
 ax[0].legend(['$\phi_{\hat{\mu}, \hat{\sigma}}(\cdot)$', 'synthetic returns'], loc='upper left')
-plt.savefig('fake_agg_gauss.png', dpi=300)
+plt.savefig('./figure/fake_agg_gauss.png', dpi=300)
+plt.show()
 
 # %%
 windows = pd.Series([1, 5, 20, 100], name='window size')
@@ -407,7 +415,7 @@ for i in range(len(windows)):
 
 stats_df = pd.DataFrame(np.round(stats_array, 3), columns=['skewness', 'skewness p-value', 'kurtosis', 'kurtosis p-value'], index=windows)
 
-with open("stats_real.tex", "w") as fh:
+with open("./table/stats_real.tex", "w") as fh:
     fh.write(stats_df.to_latex())
 
 stats_df
@@ -424,7 +432,7 @@ for i in range(len(windows)):
 
 stats_df = pd.DataFrame(np.round(stats_array, 3), columns=['skewness', 'skewness p-value', 'kurtosis', 'kurtosis p-value'], index=windows)
 
-with open("stats_fake.tex", "w") as fh:
+with open("./table/stats_fake.tex", "w") as fh:
     fh.write(stats_df.to_latex())
 
 stats_df
@@ -447,9 +455,8 @@ ax.set_ylabel('$E(r > 0$ | $|r| > r_a)$', size=14)
 
 ax.grid(alpha=0.7)
 ax.legend()
+plt.savefig('./figure/gl_assymetry.png', dpi=300)
 plt.show()
-
-plt.savefig('gl_assymetry.png', dpi=300)
 
 # %%
 fig, ax = plt.subplots(figsize=(12, 10))
@@ -476,4 +483,6 @@ ax.legend(['$|X_{real}|$ | $X_{real} \leq 0$', '$|X_{fake}|$ | $X_{fake} \leq 0$
 ax.set_xlabel('|X|', size=14)
 ax.set_ylabel('ECDF', size=14)
 
-plt.savefig('loss_ecdf.png', dpi=300)
+plt.savefig('./figure/loss_ecdf.png', dpi=300)
+plt.show()
+# %%
