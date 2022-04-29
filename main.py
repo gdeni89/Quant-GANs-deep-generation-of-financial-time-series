@@ -8,6 +8,7 @@
 # In the first chapter, we use the yfinance module to obtain financial series. In this notebook we focus on equity series. We illustrate the characteristics of the financial series that we seek to replicate in synthetic data.
 # %% Times Series
 # We use yfinance to download our targeted financial variables, the daily close price for the S&P 500.
+!pip install yfinance
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -26,20 +27,19 @@ df     = pd.DataFrame(yf.download(tickers_list,'1990-1-1')['Adj Close'])
 df     = df.rename(columns={'Adj Close':names[0]})
 
 #%% [markdown]
-# We plot our series of interest. We see that the series is non stationary.
+# We plot our series of interest, the series is non stationary.
 #%% Raw Series
-ax = df.plot(title=names[0], figsize=(10,5), legend=False)
+ax = df.plot(figsize=(10,5), legend=False)
 ax.grid(True)
 plt.savefig('./figure/SP500.png', dpi=300)
 plt.show()
 
 #%% [markdown]
-# The next plots show the returns for the S&P500 and its autocorrelation at various lag.
+# The next plots show the returns for the S&P500 and its autocorrelation at various lag orders.
 # %% Return process
 from preprocess.acf import acf, rolling_window
-
 returns = df.shift(1)/df - 1
-fig, axs = plt.subplots(ncols=2, figsize=(15, 5), legend=False)
+fig, axs = plt.subplots(ncols=2, figsize=(15, 5))
 
 axs[0].plot(returns[200:400])
 axs[0].set_title('Returns')
@@ -48,6 +48,7 @@ axs[1].set_title('Return Autocorrelation')
 
 for ax in axs: ax.grid(True)
 plt.setp(axs[0], xlabel='Day')
+plt.setp(axs[0].get_xticklabels(), rotation=45, ha='right')
 plt.setp(axs[1], xlabel='Lag (days)')
 plt.setp(axs[0], ylabel='Relative Returns')
 plt.setp(axs[1], ylabel='Autocorrelation')
@@ -57,9 +58,10 @@ plt.savefig('./figure/returns_val_corr.png', dpi=300)
 plt.show()
 
 # %% [markdown]
-# We also present log returns that have various advantages over simple returns (they are approximately normal, they are equal to cumulative return of the asset/portfolio and they are symmetric)
+# We also present log returns. They  have various advantages over simple returns (they are approximately normal, they are equal to cumulative return of the asset/portfolio and they are symmetric).
 # We calculate the log return series as,
 # $$r_t = \log\biggl(\frac{s_t}{s_{t-1}}\biggr) \text { for all } t \in \{1, ..., T\}.$$
+# As shown in [Chakraborti et al., 2011], log returns are not autocorrelated.
 # %% Log return process
 log_returns = np.log(df/df.shift(1))[1:].to_numpy().reshape(-1, 1)
 fig, axs = plt.subplots(ncols=2, figsize=(15, 5))
