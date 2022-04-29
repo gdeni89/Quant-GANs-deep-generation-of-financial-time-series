@@ -58,10 +58,12 @@ plt.savefig('./figure/returns_val_corr.png', dpi=300)
 plt.show()
 
 # %% [markdown]
+# ### Log Returns as Financial Data
 # We also present log returns. They  have various advantages over simple returns (they are approximately normal, they are equal to cumulative return of the asset/portfolio and they are symmetric).
 # We calculate the log return series as,
 # $$r_t = \log\biggl(\frac{s_t}{s_{t-1}}\biggr) \text { for all } t \in \{1, ..., T\}.$$
-# As shown in [Chakraborti et al., 2011], log returns are not autocorrelated.
+# Here we illustrate some of the stylized facts from [Chakraborti et al., 2011].
+# First, log returns are not autocorrelated.
 # %% Log return process
 log_returns = np.log(df/df.shift(1))[1:].to_numpy().reshape(-1, 1)
 fig, axs = plt.subplots(ncols=2, figsize=(15, 5))
@@ -82,7 +84,7 @@ plt.savefig('./figure/log_returns_val_corr.png', dpi=300)
 plt.show()
 
 # %% [markdown]
-# Leverage Effect
+#  Second, the volatility of asset returns negatively correlates with the return process, something known as leverage effect. Here we show the autocorrelation of log returns with its lagged standard deviation.
 # %%
 fig, ax = plt.subplots(figsize=(15,6))
 ax.plot(acf(log_returns, 125, le=True))
@@ -97,10 +99,11 @@ plt.show()
 # Prior to passing a realization of a financial time series $s_{0:T} ∈ \mathbb{R}^{N_X×(T+1)}$ to the discriminator, the time series has to be preprocessed. The applied pipeline is described in the report. We briefly explain each of the steps taken. Note that all of the used transformations, excluding the rolling window, are invertible and thus, allow a series sampled from a log return NP to be post-processed by inverting the steps 1-4 to obtain the desired form. Also, observe that the pipeline includes the inverse Lambert W transformation as earlier discussed in subsection 5.3.
 
 # %% [markdown]
-# Preprocessing
+# ## Preprocessing
 # The data need to be preprocessed before being brought to the model. We describe each step separately.
 
 # %% [markdown]
+# Step 1: Normalization
 # For numerical reasons, we normalize the data in order to obtain a series with zero mean and unit variance, which is thoroughly derived in LeCun et al. (1998).
 # %%
 from sklearn.preprocessing import StandardScaler
@@ -110,15 +113,15 @@ gaussianize, standardScaler1, standardScaler2 = Gaussianize(), StandardScaler(),
 log_returns_preprocessed = standardScaler2.fit_transform(gaussianize.fit_transform(standardScaler1.fit_transform(log_returns)))
 
 # %% [markdown]
-# Step 3: Inverse Lambert W transform
+# Step 2: Inverse Lambert W transform
 # The suggested transformation applied to the log returns of the S&P 500 is displayed in Figure 10. It shows the standardized original distribution of the S&P 500 log returns and the inverse Lambert W transformed log return distribution. Observe that the transformed standardized log return distribution in Figure 10b approximately follows the standard normal distribution and thereby circumvents the issue of not being able to generate the heavy-tail of the original distribution.
 
-## Step 5: Rolling window
-# When considering a discriminator with receptive field size $T^{(d)}$, we apply a rolling window of Corresponding length and stride one to the preprocessed log return sequence $r^{(ρ)}_t $. Hence, for $t∈\{1,...,T −T^{(d)}\}$ we define the sub-sequences $$r^{(t)}_{1:T^{(d)}} := r^{(ρ)}_{t:(T^{(d)}+t−1)} ∈  \mathbb{R}^{N_Z×T^{(d)}}.$$
+## Step 3: Rolling window
+# When considering a discriminator with receptive field size $T^{(d)}$, we apply a rolling window of corresponding length and stride one to the preprocessed log return sequence $r^{(ρ)}_t $. Hence, for $t∈\{1,...,T −T^{(d)}\}$ we define the sub-sequences $$r^{(t)}_{1:T^{(d)}} := r^{(ρ)}_{t:(T^{(d)}+t−1)} ∈  \mathbb{R}^{N_Z×T^{(d)}}.$$
 
 # Remark 6.1. Note that sliding a rolling window introduces a bias, since log returns at the beginning and end of the time series are under-sampled when training the Quant GAN. This bias can be corrected by using a (non-uniform) weighted sampling scheme when sampling batches from the training set.
 # %%
-# Receptive Field Size 127 from paper
+# We use a receptive field of size 127 as in the paper.
 log_returns_rolled = rolling_window(log_returns_preprocessed, 127)
 # %% [markdown]
 #
