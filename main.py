@@ -28,10 +28,10 @@ df     = df.rename(columns={'Adj Close':names[0]})
 #%% [markdown]
 # We plot our series of interest. We see that the series is non stationary.
 #%% Raw Series
-ax = df.plot(title=names[0], figsize=(10,5))
+ax = df.plot(title=names[0], figsize=(10,5), legend=False)
 ax.grid(True)
-plt.show()
 plt.savefig('./figure/SP500.png', dpi=300)
+plt.show()
 
 #%% [markdown]
 # The next plots show the returns for the S&P500 and its autocorrelation at various lag.
@@ -39,7 +39,7 @@ plt.savefig('./figure/SP500.png', dpi=300)
 from preprocess.acf import acf, rolling_window
 
 returns = df.shift(1)/df - 1
-fig, axs = plt.subplots(ncols=2, figsize=(15, 5))
+fig, axs = plt.subplots(ncols=2, figsize=(15, 5), legend=False)
 
 axs[0].plot(returns[200:400])
 axs[0].set_title('Returns')
@@ -344,6 +344,7 @@ plt.show()
 
 # %% [markdown]
 # ## Evaluation of the synthtetic series
+# This section shows different distance to assess the proximity of the synthetic series to their observed counterpart.
 # %%
 from scipy.stats import wasserstein_distance, norm, kurtosis, skew, skewtest, kurtosistest
 
@@ -363,10 +364,9 @@ df_EMD
 
 # %%
 windows = [1, 5, 20, 100, 1000]
-n_bins = 100
+n_bins  = 100
 
 fig, ax = plt.subplots(ncols=len(windows), figsize=(5*len(windows),5))
-
 for i in range(len(windows)):
     real_dist = rolling_window(log_returns, windows[i], sparse = not (windows[i] == 1)).sum(axis=0).ravel()
     ax[i].hist(real_dist, bins=n_bins, density=True)
@@ -379,8 +379,8 @@ for i in range(len(windows)):
     ax[i].set_ylabel('frequency')
 
 ax[0].legend(['$\phi_{\hat{\mu}, \hat{\sigma}}(\cdot)$', 'historical returns'], loc='upper left')
-plt.show()
 plt.savefig('./figure/real_agg_gauss.png', dpi=300)
+plt.show()
 
 # %%
 windows = [1, 5, 20, 100, 100]
