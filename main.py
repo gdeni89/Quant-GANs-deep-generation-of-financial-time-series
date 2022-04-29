@@ -8,7 +8,7 @@
 # In the first chapter, we use the yfinance module to obtain financial series. In this notebook we focus on equity series. We illustrate the characteristics of the financial series that we seek to replicate in synthetic data.
 # %% Times Series
 # We use yfinance to download our targeted financial variables, the daily close price for the S&P 500.
-!pip install yfinance
+!pip install yfinance -q
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -124,10 +124,10 @@ log_returns_preprocessed = standardScaler2.fit_transform(gaussianize.fit_transfo
 # We use a receptive field of size 127 as in the paper.
 log_returns_rolled = rolling_window(log_returns_preprocessed, 127)
 # %% [markdown]
-#
+# Because log returns exhibit fat tail and are more piked than gaussian variables, Lambert W transformation can be applied to bring log returns to gaussianity and improve the performances of methods meant for normalized Gaussian data.
+# Here we show log returns before and after the lambert W inverse transform respectively (both standardized). 
 # %%
 fig, ax = plt.subplots(ncols=2, figsize=(12, 5), sharey=True, sharex=True)
-# Log returns before and after the lambert W inverse transform respectively (both standardized). 
 plt.style.use('fivethirtyeight')
 
 ax[0].hist(standardScaler1.transform(log_returns), bins=100, density=True)
@@ -150,15 +150,14 @@ ax[1].set_xlabel('Gaussianized standardized log returns')
 ax[0].set_xlim(-4, 4)
 plt.savefig('./figure/empirical_distributions.png',dpi=300)
 plt.show()
-# %%
 
 # %% [markdown]
 # ## Quant GAN model
-# In this second chapter we construct the GAN model used to generate syntetic financial series with properties similar to those presented above.
+# In this second part we construct the GAN model used to generate syntetic financial series with properties similar to those presented above.
 
 #%% [markdown]
 # ### Preprocessing
-# Here we set the different parameters and options required for the implementation of Quant GAN. The choice for the model parameters are descibed in the report.
+# Here we set the different parameters and options required for the implementation of Quant GAN. The different modeling choices for the model parameters are descibed in the paper and primarily driven by performances.
 # %%
 import numpy as np
 from sklearn.preprocessing import StandardScaler
@@ -185,9 +184,8 @@ lr         = 0.0002
 
 #%% [markdown]
 # ### Dataset
-# We construct a dataloader
+# We construct a torch dataloader to feed batches of data to the generator and discriminator.
 # %%
-
 # Dataloader
 class Loader32(Dataset):
     '''Brings batches from df of length lenght sequentially.'''
@@ -210,14 +208,13 @@ class Loader32(Dataset):
 # - Rolling Window
 
 # %% [markdown]
-# Here we set some final options for the data loader
+# Here, we set some final options for the data loader, especially the size of the receptive field.
 #
 # %%
-#
 generator_path = '/home/davidg/Documents/Cours/MLforFinance/temporalCN/trained/'
 file_name = 'SP500_daily'
 
-receptive_field_size = 127  
+receptive_field_size     = 127  
 log_returns_preprocessed = rolling_window(log_returns_preprocessed, receptive_field_size)
 data_size = log_returns.shape[0]
 print(log_returns_preprocessed.shape)
@@ -274,7 +271,7 @@ else:
     generator.eval()
 
 # %% [markdown]
-# Here we create some synthetic series using the estimated GAN. To do so we create a log return series, and use the reverse the transformation used to process the original data.
+# Here we create some synthetic series using the estimated GAN. To do so we create a log return series, and use the reverse transformations used to process the original data.
 # %%
 pp    = 80
 generator.eval()
@@ -290,6 +287,8 @@ y = standardScaler1.inverse_transform(y)
 y  = y[(y.max(axis=1) <= 2 * log_returns.max()) & (y.min(axis=1) >= 2 * log_returns.min())]
 y -= y.mean()
 
+# %% [markdown]
+# This are the different generated timeseries.
 # %%
 fig, ax = plt.subplots(figsize=(16,9))
 ax.plot(np.cumsum(y[0:30], axis=1).T, alpha=0.75)
@@ -301,6 +300,10 @@ plt.show()
 n_bins  = 50
 windows = [1, 5, 20, 100]
 
+
+# %% [markdown]
+# Even with basic settings, their properties are close to the real data as shown in the following histograms.
+# %%
 fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(20, 10))
 for i in range(len(windows)):
     row = min(max(0, i-1), 1)
@@ -319,6 +322,10 @@ axs[0,0].legend(['Historical returns', 'Synthetic returns'])
 plt.savefig('./figure/synthetic_distributions.png',dpi=300)
 plt.show()
 
+
+# %% [markdown]
+# Here we present some of the autocorrelations for the synthetic data and compare it to their real counterparts.
+# %%
 fig, axs = plt.subplots(nrows=2, ncols=2, figsize=(20, 10))
 axs[0,0].plot(acf(log_returns, 100))
 axs[0,0].plot(acf(y.T, 100).mean(axis=1))
@@ -346,10 +353,10 @@ plt.setp(axs, xlabel='Lag (number of days')
 plt.savefig('./figure/synthetic_leverage.png',dpi=300)
 plt.show()
 
-
 # %% [markdown]
 # ## Evaluation of the synthtetic series
 # This section shows different distance to assess the proximity of the synthetic series to their observed counterpart.
+# The earth mover distance describes how much probability mass has to be moved to transform Ph into Pg.
 # %%
 from scipy.stats import wasserstein_distance, norm, kurtosis, skew, skewtest, kurtosistest
 
