@@ -17,6 +17,7 @@ import yfinance as yf
 import matplotlib as mpl
 mpl.rcParams.update(mpl.rcParamsDefault)
 
+os.chdir('.')
 os.makedirs('./figure/',exist_ok=True)
 os.makedirs('./table/',exist_ok=True)
 
@@ -211,7 +212,7 @@ class Loader32(Dataset):
 # Here, we set some final options for the data loader, especially the size of the receptive field.
 #
 # %%
-generator_path = '/home/davidg/Documents/Cours/MLforFinance/temporalCN/trained/'
+generator_path = './trained/'
 file_name = 'SP500_daily'
 
 receptive_field_size     = 127  
