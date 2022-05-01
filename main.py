@@ -213,7 +213,7 @@ class Loader32(Dataset):
 #
 # %%
 generator_path = './trained/'
-file_name = 'SP500_daily'
+file_name = 'CAC40_daily'
 
 receptive_field_size     = 127  
 log_returns_preprocessed = rolling_window(log_returns_preprocessed, receptive_field_size)
