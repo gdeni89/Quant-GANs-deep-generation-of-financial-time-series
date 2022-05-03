@@ -17,7 +17,7 @@ import yfinance as yf
 import matplotlib as mpl
 mpl.rcParams.update(mpl.rcParamsDefault)
 
-os.chdir('.')
+os.chdir('/home/davidg/Documents/Cours/MLforFinance/temporalCN')
 os.makedirs('./figure/',exist_ok=True)
 os.makedirs('./table/',exist_ok=True)
 

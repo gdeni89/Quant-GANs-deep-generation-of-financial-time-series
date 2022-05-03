@@ -1,6 +1,8 @@
-import torch
+# Here we construct the model Generator and Discriminator that are based on temporal blocks.
+
 import torch.nn as nn
 from torch.nn.utils import weight_norm
+sd = 80
 
 class Chomp1d(nn.Module):
     def __init__(self, chomp_size):
@@ -9,7 +11,6 @@ class Chomp1d(nn.Module):
 
     def forward(self, x):
         return x[:, :, :-self.chomp_size].contiguous()
-
 
 class TemporalBlock(nn.Module):
     """Creates a temporal block.
@@ -61,11 +62,11 @@ class Generator(nn.Module):
     """Generator: 3 to 1 Causal temporal convolutional network with skip connections.
        This network uses 1D convolutions in order to model multiple timeseries co-dependency.
     """ 
-    def __init__(self):
+    def __init__(self,sd=sd,dropout=0.05):
         super(Generator, self).__init__()
-        self.tcn = nn.ModuleList([TemporalBlock(3, 80, kernel_size=1, stride=1, dilation=1, padding=0),
-                                 *[TemporalBlock(80, 80, kernel_size=2, stride=1, dilation=i, padding=i) for i in [1, 2, 4, 8, 16, 32]]])
-        self.last = nn.Conv1d(80, 1, kernel_size=1, stride=1, dilation=1)
+        self.tcn = nn.ModuleList([TemporalBlock(3, sd, kernel_size=1, stride=1, dilation=1, padding=0,dropout=dropout),
+                                 *[TemporalBlock(sd, sd, kernel_size=2, stride=1, dilation=i, padding=i,dropout=dropout) for i in [1, 2, 4, 8, 16, 32]]])
+        self.last = nn.Conv1d(sd, 1, kernel_size=1, stride=1, dilation=1)
 
     def forward(self, x):
         skip_layers = []
@@ -80,11 +81,11 @@ class Discriminator(nn.Module):
     """Discrimnator: 1 to 1 Causal temporal convolutional network with skip connections.
        This network uses 1D convolutions in order to model multiple timeseries co-dependency.
     """ 
-    def __init__(self, seq_len, conv_dropout=0.05):
+    def __init__(self, seq_len, sd=sd,dropout=0.05):
         super(Discriminator, self).__init__()
-        self.tcn = nn.ModuleList([TemporalBlock(1, 80, kernel_size=1, stride=1, dilation=1, padding=0),
-                                 *[TemporalBlock(80, 80, kernel_size=2, stride=1, dilation=i, padding=i) for i in [1, 2, 4, 8, 16, 32]]])
-        self.last = nn.Conv1d(80, 1, kernel_size=1, dilation=1)
+        self.tcn = nn.ModuleList([TemporalBlock(1, sd, kernel_size=1, stride=1, dilation=1, padding=0,dropout=dropout),
+                                 *[TemporalBlock(sd, sd, kernel_size=2, stride=1, dilation=i, padding=i,dropout=dropout) for i in [1, 2, 4, 8, 16, 32]]])
+        self.last = nn.Conv1d(sd, 1, kernel_size=1, dilation=1)
         self.to_prob = nn.Sequential(nn.Linear(seq_len, 1), nn.Sigmoid())
 
     def forward(self, x):
