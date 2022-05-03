@@ -223,6 +223,10 @@ data_size = log_returns.shape[0]
 print(log_returns_preprocessed.shape)
 print(data_size)
 
+# %% [markdown] 
+# ## Hyperparamter Tuning
+# In this section we optimize the GAN model, the objective function minimizes the wasserstein distance between the synthetic and the real financial series.
+# We optimize over several paramter such as the learning rate, batch size and so on. Here we use minimalist settings given the time it takes to compute the GAN model. Ideally we would use more involved settings (number of epochs and so on) and would hypertune over a wider range of parameters such as the stride of the convolution networks, the number of layer and so on.
 #%% Hypertuning
 import torch.optim as optim
 from tqdm import tqdm
@@ -232,6 +236,7 @@ from optuna.visualization import plot_optimization_history
 
 # Make score
 def compute_emd(generator):
+    ''' Compute the wasserstein distance between real and synthetic data given a generator.'''
     generator.eval()
     noise = torch.randn(sd,3,receptive_field_size).to(device)
     y     = generator(noise).cpu().detach().squeeze();
@@ -257,7 +262,7 @@ def compute_emd(generator):
     return EMDscores.sum()
 
 def train_tune(param, tuning=True):
-
+    '''Compute the GAN for a given set of parameter.'''
     # Allocate params
     lr         = param['lr']
     batch_size = param['batch_size']
@@ -303,6 +308,8 @@ def train_tune(param, tuning=True):
     else:
         return generator
 
+# %% [markdown] 
+# After having defined all the necessary function for the tuning we use optuna to perform a bayesian search over our hyperparameter space.
 # %% Hypertuning with Optuna
 import optuna
 from optuna.trial import TrialState
