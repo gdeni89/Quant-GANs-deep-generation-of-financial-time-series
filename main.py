@@ -11,7 +11,7 @@
 # We use yfinance to download our targeted financial variables, the daily close price for the cac0.
 !pip install yfinance optuna -q
 import os
-os.chdir('./temporalCN')
+os.chdir('/home/davidg/Documents/Cours/MLforFinance/temporalCN')
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
