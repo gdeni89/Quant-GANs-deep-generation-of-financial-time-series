@@ -8,7 +8,7 @@
 # In the first chapter, we use the yfinance module to obtain financial series. In this notebook we focus on equity series. We illustrate the characteristics of the financial series that we seek to replicate in synthetic data.
 # %% Times Series
 # We use yfinance to download our targeted financial variables, the daily close price for the cac0.
- !pip install yfinance optuna -q
+!pip install yfinance optuna -q
 import os
 os.chdir('/home/davidg/Documents/Cours/MLforFinance/temporalCN')
 import numpy as np
