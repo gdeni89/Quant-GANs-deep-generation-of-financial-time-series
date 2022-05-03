@@ -1,7 +1,8 @@
-
 #%% [markdown] 
 # # Quant GANs: Deep Generation of Financial Time Series
 # In this notebook we replicate the different steps developped in [Wiese et al., Quant GANs: Deep Generation of Financial Time Series, 2019](https://arxiv.org/abs/1907.06673) to generate synthetic financial series.
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/gdeni89/Quant-GANs-deep-generation-of-financial-time-series/blob/cnn_paper/main.ipynb)
 
 # %% [markdown]
 # ## Timeseries: Fetching and Characteristics
@@ -10,7 +11,7 @@
 # We use yfinance to download our targeted financial variables, the daily close price for the cac0.
 !pip install yfinance optuna -q
 import os
-os.chdir('/home/davidg/Documents/Cours/MLforFinance/temporalCN')
+os.chdir('./temporalCN')
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
