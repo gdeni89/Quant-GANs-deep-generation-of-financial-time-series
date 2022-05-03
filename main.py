@@ -8,8 +8,10 @@
 # In the first chapter, we use the yfinance module to obtain financial series. In this notebook we focus on equity series. We illustrate the characteristics of the financial series that we seek to replicate in synthetic data.
 # %% Times Series
 # We use yfinance to download our targeted financial variables, the daily close price for the S&P 500.
-!pip install yfinance -q
+# !pip install yfinance -q
+os.chdir('/home/davidg/Documents/Cours/MLforFinance/temporalCN')
 import os
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -172,10 +174,9 @@ if torch.cuda.is_available():
 else:
     print("No GPU available, using the CPU instead.")
     device = torch.device("cpu")
-device = torch.device("cpu")
 
-# Set optmization parameters
-num_epochs = 100
+# Set default optmization parameters
+num_epochs = 10
 nz         = 3
 batch_size = 20
 seq_len    = 127
@@ -214,28 +215,63 @@ class Loader32(Dataset):
 generator_path = '/home/davidg/Documents/Cours/MLforFinance/temporalCN/trained/'
 file_name = 'SP500_daily'
 
+sd                       = 80
 receptive_field_size     = 127  
 log_returns_preprocessed = rolling_window(log_returns_preprocessed, receptive_field_size)
 data_size = log_returns.shape[0]
 print(log_returns_preprocessed.shape)
 print(data_size)
 
-# %%
+#%% Hypertuning
 import torch.optim as optim
 from tqdm import tqdm
-# Load the generator onto GPU if available
-generator = Generator().to(device)
+from scipy.stats import wasserstein_distance, norm, kurtosis, skew, skewtest, kurtosistest
+from optuna.visualization import plot_parallel_coordinate
+from optuna.visualization import plot_optimization_history
 
-# This is the training loop
-train = False
-if train:
-    discriminator  = Discriminator(seq_len).to(device)
+# Make score
+def compute_emd(generator):
+    generator.eval()
+    noise = torch.randn(sd,3,receptive_field_size).to(device)
+    y     = generator(noise).cpu().detach().squeeze();
+
+    y = (y - y.mean(axis=0))/y.std(axis=0)
+    y = standardScaler2.inverse_transform(y)
+    y = np.array([gaussianize.inverse_transform(np.expand_dims(x, 1)) for x in y]).squeeze()
+    y = standardScaler1.inverse_transform(y)
+
+    # some basic filtering to redue the tendency of GAN to produce extreme returns
+    y  = y[(y.max(axis=1) <= 2 * log_returns.max()) & (y.min(axis=1) >= 2 * log_returns.min())]
+    y -= y.mean()
+
+    windows   = pd.Series([1, 5, 20, 100], name='window size')
+    EMDscores = np.zeros(len(windows))
+
+    for i in range(len(windows)):
+        real_dist = rolling_window(log_returns, windows[i], sparse = not (windows[i] == 1)).sum(axis=0).ravel()
+        fake_dist = rolling_window(y.T, windows[i], sparse = not (windows[i] == 1)).sum(axis=0).ravel()
+        
+        EMDscores[i] = wasserstein_distance(real_dist, fake_dist)
+
+    return EMDscores.sum()
+
+def train_tune(param, tuning=True):
+
+    # Allocate params
+    lr         = param['lr']
+    batch_size = param['batch_size']
+    sd         = param['sd']
+    dropout    = param['dropout']
+
+    seq_len = 8021
+
+    generator      = Generator(sd=sd,dropout=dropout).to(device)
+    discriminator  = Discriminator(seq_len,sd=sd,dropout=dropout).to(device)
+    
     disc_optimizer = optim.RMSprop(discriminator.parameters(), lr=lr)
     gen_optimizer  = optim.RMSprop(generator.parameters(), lr=lr)
 
-    dataset = Loader32(log_returns_preprocessed, 127)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size)
-    dataset = Loader32(log_returns_preprocessed, 1)
+    dataset    = Loader32(log_returns_preprocessed, 1)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size)
     t = tqdm(range(num_epochs))
     for epoch in t:
@@ -251,7 +287,7 @@ if train:
             disc_loss = -torch.mean(discriminator(real)) + torch.mean(discriminator(fake))
             disc_loss.backward()
             disc_optimizer.step()
-            # print(disc_loss)
+
             for dp in discriminator.parameters():
                 dp.data.clamp_(-clip, clip)
     
@@ -259,23 +295,61 @@ if train:
                 generator.zero_grad()
                 gen_loss = -torch.mean(discriminator(generator(noise)))
                 gen_loss.backward()
-                gen_optimizer.step()            
+                gen_optimizer.step()       
         t.set_description('Discriminator Loss: %.8f Generator Loss: %.8f' % (disc_loss.item(), gen_loss.item()))
-            
-    # Save
-    torch.save(generator, f'{generator_path}trained_generator_{file_name}_epoch_{epoch}.pth')
+    if tuning:
+        return compute_emd(generator)
+    else:
+        return generator
 
-else:
-    # Load
-    generator = torch.load(f'{generator_path}trained_generator_{file_name}_epoch_{num_epochs-1}.pth')
-    generator.eval()
+# %% Hypertuning with Optuna
+import optuna
+from optuna.trial import TrialState
+
+def objective_(trial):
+    # Objective function with param grid
+    param = {
+        'lr':         trial.suggest_loguniform('lr', 0.00001,0.01),
+        'batch_size': trial.suggest_int('batch_size', 8, 32),
+        'dropout':    trial.suggest_loguniform('dropout', 1e-8, 0.1),
+        'sd':         trial.suggest_int('sd', 40, 100)
+        
+    }
+    return train_tune(param)
+
+study = optuna.create_study(direction="minimize")
+study.optimize(objective_, n_trials=20, timeout=600)
+
+pruned_trials = study.get_trials(deepcopy=False, states=[TrialState.PRUNED])
+complete_trials = study.get_trials(deepcopy=False, states=[TrialState.COMPLETE])
+
+print("Study statistics: ")
+print("  Number of finished trials: ", len(study.trials))
+print("  Number of pruned trials: ", len(pruned_trials))
+print("  Number of complete trials: ", len(complete_trials))
+
+print("Best trial:")
+trial = study.best_trial
+
+print("  Value: ", trial.value)
+
+print("  Params: ")
+for key, value in trial.params.items():
+    print("    {}: {}".format(key, value))
+
+#%% Optimization Plots
+# %%
+plot_optimization_history(study)
+# %%
+plot_parallel_coordinate(study)
 
 # %% [markdown]
 # Here we create some synthetic series using the estimated GAN. To do so we create a log return series, and use the reverse transformations used to process the original data.
-# %%
-pp    = 80
+# %% 
+# Get optimal model using hypertuning results
+generator = train_tune(trial.params, tuning=False)
 generator.eval()
-noise = torch.randn(pp,3,receptive_field_size).to(device)
+noise = torch.randn(sd,3,receptive_field_size).to(device)
 y     = generator(noise).cpu().detach().squeeze();
 
 y = (y - y.mean(axis=0))/y.std(axis=0)
@@ -360,9 +434,8 @@ plt.show()
 # %%
 from scipy.stats import wasserstein_distance, norm, kurtosis, skew, skewtest, kurtosistest
 
-windows = pd.Series([1, 5, 20, 100], name='window size')
+windows   = pd.Series([1, 5, 20, 100], name='window size')
 EMDscores = np.zeros(len(windows))
-
 for i in range(len(windows)):
     real_dist = rolling_window(log_returns, windows[i], sparse = not (windows[i] == 1)).sum(axis=0).ravel()
     fake_dist = rolling_window(y.T, windows[i], sparse = not (windows[i] == 1)).sum(axis=0).ravel()
