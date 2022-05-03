@@ -7,7 +7,7 @@
 # ## Timeseries: Fetching and Characteristics
 # In the first chapter, we use the yfinance module to obtain financial series. In this notebook we focus on equity series. We illustrate the characteristics of the financial series that we seek to replicate in synthetic data.
 # %% Times Series
-# We use yfinance to download our targeted financial variables, the daily close price for the S&P 500.
+# We use yfinance to download our targeted financial variables, the daily close price for the CAC40.
 !pip install yfinance -q
 import os
 import numpy as np
@@ -21,8 +21,8 @@ os.chdir('.')
 os.makedirs('./figure/',exist_ok=True)
 os.makedirs('./table/',exist_ok=True)
 
-tickers_list = ['^GSPC',]
-names  = ['SP500',]
+tickers_list = ['^FCHI',]
+names  = ['CAC40',]
 n_dict = dict(zip(tickers_list,names))
 df     = pd.DataFrame(yf.download(tickers_list,'1990-1-1')['Adj Close'])
 df     = df.rename(columns={'Adj Close':names[0]})
@@ -32,11 +32,11 @@ df     = df.rename(columns={'Adj Close':names[0]})
 #%% Raw Series
 ax = df.plot(figsize=(10,5), legend=False)
 ax.grid(True)
-plt.savefig('./figure/SP500.png', dpi=300)
+plt.savefig('./figure/CAC40.png', dpi=300)
 plt.show()
 
 #%% [markdown]
-# The next plots show the returns for the S&P500 and its autocorrelation at various lag orders.
+# The next plots show the returns for the CAC40 and its autocorrelation at various lag orders.
 # %% Return process
 from preprocess.acf import acf, rolling_window
 returns = df.shift(1)/df - 1
@@ -115,7 +115,7 @@ log_returns_preprocessed = standardScaler2.fit_transform(gaussianize.fit_transfo
 
 # %% [markdown]
 # Step 2: Inverse Lambert W transform
-# The suggested transformation applied to the log returns of the S&P 500 is displayed in Figure 10. It shows the standardized original distribution of the S&P 500 log returns and the inverse Lambert W transformed log return distribution. Observe that the transformed standardized log return distribution in Figure 10b approximately follows the standard normal distribution and thereby circumvents the issue of not being able to generate the heavy-tail of the original distribution.
+# The suggested transformation applied to the log returns of the CAC40 is displayed in Figure 10. It shows the standardized original distribution of the CAC40 log returns and the inverse Lambert W transformed log return distribution. Observe that the transformed standardized log return distribution in Figure 10b approximately follows the standard normal distribution and thereby circumvents the issue of not being able to generate the heavy-tail of the original distribution.
 
 ## Step 3: Rolling window
 # When considering a discriminator with receptive field size $T^{(d)}$, we apply a rolling window of corresponding length and stride one to the preprocessed log return sequence $r^{(ρ)}_t $. Hence, for $t∈\{1,...,T −T^{(d)}\}$ we define the sub-sequences $$r^{(t)}_{1:T^{(d)}} := r^{(ρ)}_{t:(T^{(d)}+t−1)} ∈  \mathbb{R}^{N_Z×T^{(d)}}.$$
