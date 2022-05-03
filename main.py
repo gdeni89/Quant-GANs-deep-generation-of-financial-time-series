@@ -176,7 +176,7 @@ else:
     device = torch.device("cpu")
 
 # Set default optmization parameters
-num_epochs = 10
+num_epochs = 15
 nz         = 3
 batch_size = 20
 seq_len    = 127
@@ -268,7 +268,7 @@ def train_tune(param, tuning=True):
     sd         = param['sd']
     dropout    = param['dropout']
 
-    seq_len = 8021
+    seq_len = 8036
 
     generator      = Generator(sd=sd,dropout=dropout).to(device)
     discriminator  = Discriminator(seq_len,sd=sd,dropout=dropout).to(device)
@@ -279,9 +279,8 @@ def train_tune(param, tuning=True):
     dataset    = Loader32(log_returns_preprocessed, 1)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size)
     t = tqdm(range(num_epochs))
-    for epoch in t:
+    for _ in t:
         for idx, data in enumerate(dataloader, 0):
-
             discriminator.zero_grad()
             real = data.to(device)
             batch_size, seq_len = real.size(0), real.size(1)
@@ -314,7 +313,7 @@ import optuna
 from optuna.trial import TrialState
 
 def objective_(trial):
-    # Objective function with param grid
+    # Objective function with parameter grid
     param = {
         'lr':         trial.suggest_loguniform('lr', 0.00001,0.01),
         'batch_size': trial.suggest_int('batch_size', 8, 32),
