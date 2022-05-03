@@ -23,7 +23,7 @@ os.chdir('.')
 os.makedirs('./figure/',exist_ok=True)
 os.makedirs('./table/',exist_ok=True)
 
-tickers_list = ['^GSPC',]
+tickers_list = ['^FCHI',]
 names  = ['CAC40',]
 n_dict = dict(zip(tickers_list,names))
 df     = pd.DataFrame(yf.download(tickers_list,'1990-1-1')['Adj Close'])
