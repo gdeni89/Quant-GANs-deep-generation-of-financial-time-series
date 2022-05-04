@@ -10,8 +10,17 @@
 # %% Times Series
 # We use yfinance to download our targeted financial variables, the daily close price for the cac0.
 !pip install yfinance optuna -q
-import os
-os.chdir('/home/davidg/Documents/Cours/MLforFinance/temporalCN')
+import os, pathlib
+# os.chdir('/home/davidg/Documents/Cours/MLforFinance/temporalCN')
+# Load Drive Contents
+from google.colab import drive
+path_files = pathlib.Path('/content/drive/MyDrive/Gdoor')
+
+mnt_point = '/content/drive/'
+drive.mount(mnt_point, force_remount = True)
+data_path = mnt_point + 'My Drive/Gdoor'
+os.chdir(data_path)
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
