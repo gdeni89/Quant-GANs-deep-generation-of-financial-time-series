@@ -18,7 +18,7 @@ path_files = pathlib.Path('/content/drive/MyDrive/Gdoor')
 
 mnt_point = '/content/drive/'
 drive.mount(mnt_point, force_remount = True)
-data_path = mnt_point + 'My Drive/Gdoor'
+data_path = mnt_point + 'My Drive/DL'
 os.chdir(data_path)
 
 import numpy as np
